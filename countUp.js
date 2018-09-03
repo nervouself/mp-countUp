@@ -68,10 +68,11 @@ function CountUp(startVal, endVal, duration, recieveFn, decimals, options) {
   }
 
   // make sure requestAnimationFrame and cancelAnimationFrame are defined
-  // polyfill for browsers without native support
-  // by Opera engineer Erik Möller
   let lastTime = 0;
-  if (!global.requestAnimationFrame) {
+  try {
+    global.requestAnimationFrame = requestAnimationFrame;
+    global.cancelAnimationFrame = cancelAnimationFrame;
+  } catch (e) {
     global.requestAnimationFrame = function (callback) {
       const currTime = new Date().getTime();
       const timeToCall = Math.max(0, 16 - (currTime - lastTime));
@@ -79,8 +80,6 @@ function CountUp(startVal, endVal, duration, recieveFn, decimals, options) {
       lastTime = currTime + timeToCall;
       return id;
     };
-  }
-  if (!global.cancelAnimationFrame) {
     global.cancelAnimationFrame = function (id) {
       clearTimeout(id);
     };
@@ -151,7 +150,7 @@ function CountUp(startVal, endVal, duration, recieveFn, decimals, options) {
 
     // whether to continue
     if (progress < self.duration) {
-      self.rAF = requestAnimationFrame(self.count);
+      self.rAF = global.requestAnimationFrame(self.count);
     } else {
       if (self.callback) self.callback();
     }
@@ -160,19 +159,19 @@ function CountUp(startVal, endVal, duration, recieveFn, decimals, options) {
   self.start = function (callback) {
     if (!self.initialize()) return;
     self.callback = callback;
-    self.rAF = requestAnimationFrame(self.count);
+    self.rAF = global.requestAnimationFrame(self.count);
   };
   // toggles pause/resume animation
   self.pauseResume = function () {
     if (!self.paused) {
       self.paused = true;
-      cancelAnimationFrame(self.rAF);
+      global.cancelAnimationFrame(self.rAF);
     } else {
       self.paused = false;
       delete self.startTime;
       self.duration = self.remaining;
       self.startVal = self.frameVal;
-      requestAnimationFrame(self.count);
+      global.requestAnimationFrame(self.count);
     }
   };
   // reset to startVal so animation can be run again
@@ -181,7 +180,7 @@ function CountUp(startVal, endVal, duration, recieveFn, decimals, options) {
     delete self.startTime;
     self.initialized = false;
     if (self.initialize()) {
-      cancelAnimationFrame(self.rAF);
+      global.cancelAnimationFrame(self.rAF);
       self.printValue(self.startVal);
     }
   };
@@ -195,13 +194,13 @@ function CountUp(startVal, endVal, duration, recieveFn, decimals, options) {
     }
     self.error = '';
     if (newEndVal === self.frameVal) return;
-    cancelAnimationFrame(self.rAF);
+    global.cancelAnimationFrame(self.rAF);
     self.paused = false;
     delete self.startTime;
     self.startVal = self.frameVal;
     self.endVal = newEndVal;
     self.countDown = (self.startVal > self.endVal);
-    self.rAF = requestAnimationFrame(self.count);
+    self.rAF = global.requestAnimationFrame(self.count);
   };
 
   // format startVal on initialization
